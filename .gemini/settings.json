@@ -1,0 +1,9 @@
+{
+  "skills": {
+    "disabled": [
+      "fullstack-devops-architect",
+      "vitest-rules",
+      "yoni-goldberg-testing"
+    ]
+  }
+}
