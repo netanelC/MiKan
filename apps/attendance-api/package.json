@@ -1,0 +1,25 @@
+{
+  "name": "attendance-api",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "test": "vitest run src",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.2.0",
+    "database": "workspace:^",
+    "fastify": "^5.8.5",
+    "whatsapp-engine": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/supertest": "^7.2.0",
+    "eslint": "catalog:",
+    "supertest": "^7.2.2",
+    "tsx": "^4.21.0",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

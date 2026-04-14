@@ -10,13 +10,13 @@ Durable decisions that apply across all phases:
 - **Backend Stack**: Fastify (API) + Prisma (ORM) + PostgreSQL.
 - **Frontend Stack**: React (Vite) with Basic Auth.
 - **Routes**:
-    - `GET /api/auth/qr`: Stream/SSE for WhatsApp authentication.
-    - `POST /api/admin/config`: Update poll options/cron timings.
-    - `GET /api/status`: Current bot state and active polls.
+  - `GET /api/auth/qr`: Stream/SSE for WhatsApp authentication.
+  - `POST /api/admin/config`: Update poll options/cron timings.
+  - `GET /api/status`: Current bot state and active polls.
 - **Schema**:
-    - `GroupMember`: Immutable daily snapshot (WhatsApp ID, Name, Timestamp).
-    - `AttendanceRecord`: Daily entries linked to members.
-    - `PollState`: Tracks current poll IDs and option mappings.
+  - `GroupMember`: Immutable daily snapshot (WhatsApp ID, Name, Timestamp).
+  - `AttendanceRecord`: Daily entries linked to members.
+  - `PollState`: Tracks current poll IDs and option mappings.
 - **Deployment**: OpenShift-ready Docker images. Local PV mapping for `.wwebjs_auth`.
 
 ---

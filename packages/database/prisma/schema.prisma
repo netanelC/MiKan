@@ -1,0 +1,33 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model GroupMember {
+  id        String   @id @default(uuid())
+  whatsappId String
+  name      String
+  timestamp DateTime @default(now())
+
+  attendanceRecords AttendanceRecord[]
+}
+
+model AttendanceRecord {
+  id        String   @id @default(uuid())
+  memberId  String
+  member    GroupMember @relation(fields: [memberId], references: [id])
+  date      DateTime
+  status    String   // PRESENT, ABSENT, SOFASH, HOLIDAY
+  createdAt DateTime @default(now())
+}
+
+model PollState {
+  id        String   @id @default(uuid())
+  pollId    String   @unique
+  date      DateTime
+  options   Json
+  createdAt DateTime @default(now())
+}

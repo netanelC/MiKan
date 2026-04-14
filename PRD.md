@@ -21,7 +21,7 @@ Managing daily attendance for Israeli workgroups (especially in military or hybr
 **Smart Scheduling (Hebcal Engine)**
 6\. As the system, I want to calculate the Hebrew calendar dates and holidays, so that I know which days are working days, Sofash, Erev Chag, or Chag.
 7\. As the system, I want to guarantee that an attendance record is created for every single calendar day, so that there are no gaps in the database.
-8\. As the system, I want to send polls *only* on normal working days, so that employees are not bothered on weekends or holidays.
+8\. As the system, I want to send polls _only_ on normal working days, so that employees are not bothered on weekends or holidays.
 9\. As the system, I want to combine consecutive non-working days of the same type (e.g., Friday and Saturday into "Sofash"), so that chat spam is minimized.
 10\. As the system, I want to execute a lookahead algorithm on every working day at 9:00 AM, so that if the next day is a non-working day, all necessary future polls are sent immediately.
 
@@ -43,41 +43,41 @@ Managing daily attendance for Israeli workgroups (especially in military or hybr
 
 ## Implementation Decisions
 
-  - **Architecture:** The project will be built as a TypeScript monorepo managed by `pnpm` and `Turborepo`.
-  - **Code Quality:** `ESLint` and `Prettier` will be configured at the monorepo root to enforce consistent formatting and catch syntax issues across all apps and packages.
-  - **Database:** PostgreSQL accessed via Prisma ORM.
-  - **Backend API:** Fastify will be used to serve the REST API and the QR code streaming endpoint.
-  - **Frontend UI:** React.
-  - **Configuration Management:** The `config` npm package will be used (`default.json`, `production.json`, `custom-environment-variables.json`) to elegantly map OpenShift environment variables and ConfigMaps into the application code.
-  - **Deployment:** The application will be containerized using Docker. A Helm Chart will define the OpenShift deployment resources, with all deployment configurations and overrides maintained centrally in the `site-values` repository.
-  - **CI/CD Pipeline:** GitHub Actions will handle the build, test, and deployment pipelines. The release process will prioritize an official commit-based tag flow triggered by merges to the master branch, omitting release candidate (RC) tags entirely.
-  - **Testing Framework:** `Vitest` will be utilized across the monorepo.
-  - **Module Boundaries:**
-      - `whatsapp-engine`: Encapsulates `whatsapp-web.js` completely. Exposes interfaces for sending polls, scraping poll state, mentioning users, and streaming the QR code. Handles all persistence and Puppeteer configuration.
-      - `hebcal-scheduler`: A pure domain logic module that wraps `@hebcal/core`. It strictly calculates the N-1 lookahead polling schedule and groups non-working days.
-      - `blame-coordinator`: A service module that acts as the cron manager. It handles taking the 9:00 AM DB snapshot and executing the exact-minute scraping/blaming cycle.
-      - `attendance-api`: The Fastify integration layer.
-      - `mikan-ui`: The frontend dashboard.
-  - **Snapshot Logic:** The 9:00 AM snapshot is immutable for that day. Users joining the group at 9:05 AM are explicitly ignored by the system until the next day to prevent state conflicts.
-  - **Scraping Strategy:** Instead of relying on real-time WhatsApp event listeners (which can be flaky for polls), the system will actively query the poll state at the exact moment of the blame cron execution.
+- **Architecture:** The project will be built as a TypeScript monorepo managed by `pnpm` and `Turborepo`.
+- **Code Quality:** `ESLint` and `Prettier` will be configured at the monorepo root to enforce consistent formatting and catch syntax issues across all apps and packages.
+- **Database:** PostgreSQL accessed via Prisma ORM.
+- **Backend API:** Fastify will be used to serve the REST API and the QR code streaming endpoint.
+- **Frontend UI:** React.
+- **Configuration Management:** The `config` npm package will be used (`default.json`, `production.json`, `custom-environment-variables.json`) to elegantly map OpenShift environment variables and ConfigMaps into the application code.
+- **Deployment:** The application will be containerized using Docker. A Helm Chart will define the OpenShift deployment resources, with all deployment configurations and overrides maintained centrally in the `site-values` repository.
+- **CI/CD Pipeline:** GitHub Actions will handle the build, test, and deployment pipelines. The release process will prioritize an official commit-based tag flow triggered by merges to the master branch, omitting release candidate (RC) tags entirely.
+- **Testing Framework:** `Vitest` will be utilized across the monorepo.
+- **Module Boundaries:**
+  - `whatsapp-engine`: Encapsulates `whatsapp-web.js` completely. Exposes interfaces for sending polls, scraping poll state, mentioning users, and streaming the QR code. Handles all persistence and Puppeteer configuration.
+  - `hebcal-scheduler`: A pure domain logic module that wraps `@hebcal/core`. It strictly calculates the N-1 lookahead polling schedule and groups non-working days.
+  - `blame-coordinator`: A service module that acts as the cron manager. It handles taking the 9:00 AM DB snapshot and executing the exact-minute scraping/blaming cycle.
+  - `attendance-api`: The Fastify integration layer.
+  - `mikan-ui`: The frontend dashboard.
+- **Snapshot Logic:** The 9:00 AM snapshot is immutable for that day. Users joining the group at 9:05 AM are explicitly ignored by the system until the next day to prevent state conflicts.
+- **Scraping Strategy:** Instead of relying on real-time WhatsApp event listeners (which can be flaky for polls), the system will actively query the poll state at the exact moment of the blame cron execution.
 
 ## Testing Decisions
 
-  - **Testing Philosophy:** A good test validates external behavior and business outcomes, not internal implementation details or private methods. Tests should provide high confidence without making refactoring difficult.
-  - **Primary Strategy:** The automated testing strategy will focus heavily on **integration tests** to ensure the boundaries between the API, the Blame Coordinator, and the WhatsApp Engine interact flawlessly.
-  - **Unit Testing Isolation:** Strict unit tests will be limited to complex algorithms rather than every code function. Specifically, the pure domain logic inside the `hebcal-scheduler` will undergo exhaustive unit testing to validate the Hebrew calendar computations without relying on database or network mocks.
-  - **Prior Art/Coverage:** Ensure comprehensive test coverage for the N-1 lookahead polling logic, validating output against known edge-case years (e.g., Rosh Hashanah falling adjacent to a weekend).
+- **Testing Philosophy:** A good test validates external behavior and business outcomes, not internal implementation details or private methods. Tests should provide high confidence without making refactoring difficult.
+- **Primary Strategy:** The automated testing strategy will focus heavily on **integration tests** to ensure the boundaries between the API, the Blame Coordinator, and the WhatsApp Engine interact flawlessly.
+- **Unit Testing Isolation:** Strict unit tests will be limited to complex algorithms rather than every code function. Specifically, the pure domain logic inside the `hebcal-scheduler` will undergo exhaustive unit testing to validate the Hebrew calendar computations without relying on database or network mocks.
+- **Prior Art/Coverage:** Ensure comprehensive test coverage for the N-1 lookahead polling logic, validating output against known edge-case years (e.g., Rosh Hashanah falling adjacent to a weekend).
 
 ## Out of Scope
 
-  - Handling multiple WhatsApp Group IDs simultaneously (the bot currently targets a single, configurable Group ID per instance).
-  - Dynamic RBAC (Role-Based Access Control) or complex user management in the UI. Basic Auth is sufficient.
-  - Tracking attendance for users who join the WhatsApp group *after* the 9:00 AM snapshot for that specific day.
-  - Sending direct messages (DMs) to users; all interaction and blaming occurs within the configured WhatsApp group.
+- Handling multiple WhatsApp Group IDs simultaneously (the bot currently targets a single, configurable Group ID per instance).
+- Dynamic RBAC (Role-Based Access Control) or complex user management in the UI. Basic Auth is sufficient.
+- Tracking attendance for users who join the WhatsApp group _after_ the 9:00 AM snapshot for that specific day.
+- Sending direct messages (DMs) to users; all interaction and blaming occurs within the configured WhatsApp group.
 
 ## Further Notes
 
-  - **OpenShift Constraints:** Ensure the `.wwebjs_auth` directory (or equivalent) is strictly mapped to the Local PV in the OpenShift deployment configuration.
-  - **Observability:** Given the asynchronous nature of the "Blame" cycle and WhatsApp web connection stability, OTEL instrumentation should wrap the `whatsapp-engine` initialization and the `blame-coordinator` cron executions to provide immediate visibility into silent failures.
+- **OpenShift Constraints:** Ensure the `.wwebjs_auth` directory (or equivalent) is strictly mapped to the Local PV in the OpenShift deployment configuration.
+- **Observability:** Given the asynchronous nature of the "Blame" cycle and WhatsApp web connection stability, OTEL instrumentation should wrap the `whatsapp-engine` initialization and the `blame-coordinator` cron executions to provide immediate visibility into silent failures.
 
 \</prd-template\>
