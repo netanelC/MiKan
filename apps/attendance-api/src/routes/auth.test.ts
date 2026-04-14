@@ -9,6 +9,9 @@ vi.mock('whatsapp-engine', () => {
       start() {}
       on() {}
       off() {}
+      getStatus() {
+        return 'disconnected';
+      }
     },
   };
 });

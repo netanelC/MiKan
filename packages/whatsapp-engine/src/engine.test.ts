@@ -7,7 +7,9 @@ vi.mock('whatsapp-web.js', () => {
     Client: class MockClient {
       qrCallback: ((qr: string) => void) | undefined;
       readyCallback: (() => void) | undefined;
-      initialize() {}
+      initialize() {
+        return Promise.resolve();
+      }
       on(event: string, callback: (...args: never[]) => void) {
         if (event === 'qr') this.qrCallback = callback as (qr: string) => void;
         if (event === 'ready') this.readyCallback = callback as () => void;
@@ -24,30 +26,36 @@ vi.mock('whatsapp-web.js', () => {
 });
 
 describe('WhatsAppEngine', () => {
-  it('should emit qr code when client generates one', () => {
+  it('StartClient_ClientGeneratesQR_EmitsQrEvent', () => {
+    // Arrange
     const engine = new WhatsAppEngine();
     const qrSpy = vi.fn();
     engine.on('qr', qrSpy);
 
+    // Act
     engine.start();
 
     // Simulate the underlying client emitting a QR code
     const mockClient = (engine as unknown as { client: { emitQr: (qr: string) => void } }).client;
     mockClient.emitQr('mock-qr-code');
 
+    // Assert
     expect(qrSpy).toHaveBeenCalledWith('mock-qr-code');
   });
 
-  it('should emit ready when client connects', () => {
+  it('StartClient_ClientConnects_EmitsReadyEvent', () => {
+    // Arrange
     const engine = new WhatsAppEngine();
     const readySpy = vi.fn();
     engine.on('ready', readySpy);
 
+    // Act
     engine.start();
 
     const mockClient = (engine as unknown as { client: { emitReady: () => void } }).client;
     mockClient.emitReady();
 
+    // Assert
     expect(readySpy).toHaveBeenCalled();
   });
 });
