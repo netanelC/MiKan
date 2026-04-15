@@ -7,7 +7,7 @@ export const connectionString = process.env.DATABASE_URL;
 // We need to provide a default fallback for test environments or build steps
 // where DATABASE_URL might not be fully present, but the client still needs to instantiate without throwing.
 const pool = new Pool({
-  connectionString: connectionString || 'postgresql://postgres:postgres@localhost:5432/mikan',
+  connectionString: connectionString || 'postgresql://postgres:postgres@localhost:5434/mikan',
 });
 const adapter = new PrismaPg(pool);
 
