@@ -1,5 +1,10 @@
-import { Client, LocalAuth } from 'whatsapp-web.js';
+import { Client, LocalAuth, Poll } from 'whatsapp-web.js';
 import { EventEmitter } from 'events';
+
+export interface GroupParticipant {
+  id: string;
+  name?: string;
+}
 
 export class WhatsAppEngine extends EventEmitter {
   private client: Client;
@@ -55,5 +60,37 @@ export class WhatsAppEngine extends EventEmitter {
 
   public getStatus() {
     return this.isConnected ? 'ready' : 'disconnected';
+  }
+
+  /**
+   * Fetches all participants from a specific WhatsApp group
+   */
+  public async getGroupParticipants(groupId: string): Promise<GroupParticipant[]> {
+    if (!this.isConnected) throw new Error('WhatsApp Engine not connected');
+
+    const chat = await this.client.getChatById(groupId);
+    if (!chat.isGroup) throw new Error('Chat is not a group');
+
+    const groupChat = chat as unknown as {
+      participants: Array<{ id: { _serialized: string; user?: string }; name?: string }>;
+    };
+    const participants = groupChat.participants;
+
+    return participants.map((p) => ({
+      id: p.id._serialized,
+      name: p.name || p.id.user,
+    }));
+  }
+
+  /**
+   * Sends a native WhatsApp poll to a specific group
+   */
+  public async sendPoll(groupId: string, pollName: string, options: string[]): Promise<string> {
+    if (!this.isConnected) throw new Error('WhatsApp Engine not connected');
+
+    const poll = new Poll(pollName, options, { allowMultipleAnswers: false } as never);
+    const message = await this.client.sendMessage(groupId, poll);
+
+    return message.id.id;
   }
 }
