@@ -3,6 +3,24 @@ import { QRCodeSVG } from 'qrcode.react';
 
 type BotStatus = 'disconnected' | 'qr_ready' | 'authenticated' | 'ready' | 'auth_failure' | 'error';
 
+interface GroupMember {
+  id: string;
+  whatsappId: string;
+  name: string;
+  status: string;
+}
+
+interface ActivePoll {
+  id: string;
+  date: string;
+  options: string[];
+}
+
+interface DashboardData {
+  activePoll: ActivePoll | null;
+  members: GroupMember[];
+}
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
@@ -11,6 +29,8 @@ export default function App() {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [status, setStatus] = useState<BotStatus>('disconnected');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,6 +79,29 @@ export default function App() {
     };
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    if (!isAuthenticated || status !== 'ready') return;
+
+    const fetchStatus = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/status');
+        const data = await response.json();
+        if (data.activePoll !== undefined) {
+          setDashboardData({
+            activePoll: data.activePoll,
+            members: data.members || [],
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch dashboard data', err);
+      }
+    };
+
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 5000); // Poll every 5s
+    return () => clearInterval(interval);
+  }, [isAuthenticated, status]);
+
   const getStatusDisplay = () => {
     switch (status) {
       case 'disconnected':
@@ -75,6 +118,21 @@ export default function App() {
         return 'System Error';
       default:
         return status;
+    }
+  };
+
+  const getStatusColor = (memberStatus: string) => {
+    switch (memberStatus) {
+      case 'PRESENT':
+        return '#5cb85c';
+      case 'ABSENT':
+        return '#d9534f';
+      case 'SOFASH':
+        return '#5bc0de';
+      case 'HOLIDAY':
+        return '#5bc0de';
+      default:
+        return '#f0ad4e'; // PENDING
     }
   };
 
@@ -183,6 +241,75 @@ export default function App() {
       {status === 'ready' && (
         <div style={{ marginTop: '2rem', color: '#444' }}>
           <p>Your WhatsApp account is successfully paired and the bot is monitoring the group.</p>
+
+          {dashboardData && dashboardData.activePoll ? (
+            <div
+              style={{
+                marginTop: '2rem',
+                textAlign: 'left',
+                maxWidth: '600px',
+                margin: '2rem auto',
+              }}
+            >
+              <h3 style={{ borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>
+                Active Poll Status
+              </h3>
+              <p style={{ margin: '0.5rem 0' }}>
+                <strong>Poll ID:</strong> {dashboardData.activePoll.id}
+              </p>
+              <p style={{ margin: '0.5rem 0' }}>
+                <strong>Options:</strong> {dashboardData.activePoll.options.join(', ')}
+              </p>
+
+              <h4 style={{ marginTop: '2rem', marginBottom: '1rem' }}>
+                Group Members ({dashboardData.members.length})
+              </h4>
+              <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
+                {dashboardData.members.map((member) => (
+                  <li
+                    key={member.id}
+                    style={{
+                      padding: '1rem',
+                      borderBottom: '1px solid #eee',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      backgroundColor: '#fff',
+                      marginBottom: '0.5rem',
+                      borderRadius: '4px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                    }}
+                  >
+                    <span style={{ fontWeight: '500' }}>{member.name}</span>
+                    <span
+                      style={{
+                        fontWeight: 'bold',
+                        color: 'white',
+                        backgroundColor: getStatusColor(member.status),
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '12px',
+                        fontSize: '0.85rem',
+                      }}
+                    >
+                      {member.status}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <div
+              style={{
+                marginTop: '3rem',
+                padding: '2rem',
+                backgroundColor: '#f9f9f9',
+                borderRadius: '8px',
+              }}
+            >
+              <h3 style={{ color: '#666', margin: 0 }}>No active poll for today.</h3>
+              <p style={{ marginTop: '0.5rem' }}>Waiting for the 9:00 AM snapshot cycle.</p>
+            </div>
+          )}
         </div>
       )}
     </div>

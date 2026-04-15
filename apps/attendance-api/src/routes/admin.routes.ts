@@ -5,7 +5,6 @@ import { engine } from './auth.routes';
 const snapshotService = new SnapshotService(engine);
 
 interface TriggerBody {
-  groupId: string;
   pollTitle?: string;
   options?: string[];
 }
@@ -14,10 +13,11 @@ export default async function adminRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/trigger-loop',
     async (request: FastifyRequest<{ Body: TriggerBody }>, reply: FastifyReply) => {
-      const { groupId, pollTitle, options } = request.body;
+      const { pollTitle, options } = request.body || {};
+      const targetGroupId = process.env.WHATSAPP_GROUP_ID;
 
-      if (!groupId) {
-        return reply.status(400).send({ error: 'groupId is required' });
+      if (!targetGroupId) {
+        return reply.status(400).send({ error: 'WHATSAPP_GROUP_ID env is required' });
       }
 
       try {
@@ -25,7 +25,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
         const defaultOptions = options || ['Present', 'Absent'];
 
         const result = await snapshotService.takeSnapshotAndSendPoll(
-          groupId,
+          targetGroupId,
           defaultTitle,
           defaultOptions,
         );

@@ -34,15 +34,18 @@ describe('Admin Component', () => {
     await app.ready();
 
     // Clean DB before each test
+    await prisma.attendanceRecord.deleteMany({});
     await prisma.groupMember.deleteMany({});
     await prisma.pollState.deleteMany({});
 
     vi.restoreAllMocks();
   });
 
-  it('POST /api/admin/trigger-loop_ValidGroupId_TakesSnapshotAndSendsPoll', async () => {
+  it('POST /api/admin/trigger-loop_EnvGroupId_TakesSnapshotAndSendsPoll', async () => {
     // Arrange
-    const payload = { groupId: 'test-group-id' };
+    const originalEnv = process.env.WHATSAPP_GROUP_ID;
+    process.env.WHATSAPP_GROUP_ID = 'env-group-id';
+    const payload = {};
     const getParticipantsSpy = vi.spyOn(engine, 'getGroupParticipants');
     const sendPollSpy = vi.spyOn(engine, 'sendPoll');
 
@@ -60,8 +63,8 @@ describe('Admin Component', () => {
     expect(responseData.pollId).toBe('mock-poll-id-123');
 
     // Verify Engine Spies
-    expect(getParticipantsSpy).toHaveBeenCalledWith('test-group-id');
-    expect(sendPollSpy).toHaveBeenCalledWith('test-group-id', 'Daily Attendance', [
+    expect(getParticipantsSpy).toHaveBeenCalledWith('env-group-id');
+    expect(sendPollSpy).toHaveBeenCalledWith('env-group-id', 'Daily Attendance', [
       'Present',
       'Absent',
     ]);
@@ -74,11 +77,17 @@ describe('Admin Component', () => {
     const pollStates = await prisma.pollState.findMany();
     expect(pollStates).toHaveLength(1);
     expect(pollStates[0].pollId).toBe('mock-poll-id-123');
+
+    // Restore
+    if (originalEnv) process.env.WHATSAPP_GROUP_ID = originalEnv;
+    else delete process.env.WHATSAPP_GROUP_ID;
   });
 
-  it('POST /api/admin/trigger-loop_MissingGroupId_Returns400', async () => {
+  it('POST /api/admin/trigger-loop_MissingEnvGroupId_Returns400', async () => {
     // Arrange
-    const payload = {}; // Missing groupId
+    const payload = {};
+    const originalEnv = process.env.WHATSAPP_GROUP_ID;
+    delete process.env.WHATSAPP_GROUP_ID;
 
     // Act
     const response = await app.inject({
@@ -91,5 +100,8 @@ describe('Admin Component', () => {
     expect(response.statusCode).toBe(400);
     const members = await prisma.groupMember.count();
     expect(members).toBe(0);
+
+    // Restore
+    if (originalEnv) process.env.WHATSAPP_GROUP_ID = originalEnv;
   });
 });
